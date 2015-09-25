@@ -1,7 +1,6 @@
 package com.hari.development.gitissuetracker;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.v7.app.ActionBarActivity;
@@ -15,17 +14,20 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.android.volley.NetworkResponse;
-import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.Volley;
 
+import org.joda.time.Chronology;
+import org.joda.time.DateTime;
+import org.joda.time.chrono.ISOChronology;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 
@@ -38,12 +40,15 @@ public class MainActivity extends ActionBarActivity {
     private Button button ;
     private EditText editText = null;
 
+    List<Issue> IssueList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         button = (Button) findViewById(R.id.button);
         editText = (EditText) findViewById(R.id.repo);
+        IssueList = new ArrayList<>();
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -53,6 +58,7 @@ public class MainActivity extends ActionBarActivity {
                     Toast.makeText(MainActivity.this, "Enter The repository address", Toast.LENGTH_LONG).show();
                 } else {
                     if (isOnline()) {
+                        Log.v("asd","InOnClick");
                         getIssueData();
 
                     } else
@@ -60,6 +66,8 @@ public class MainActivity extends ActionBarActivity {
                 }
             }
         });
+
+
 
     }
 
@@ -88,20 +96,30 @@ public class MainActivity extends ActionBarActivity {
 
 
     String nextPage =null;
+    DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'z'");
 
     private void getIssueData(){
+        Log.v("asd","getIssueData");
 
         jsonArrayRequest = new JsonArrayRequest(API_URL,
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
                         try {
-                            JSONObject jsonObject = response.getJSONObject(0);
-                            String state = jsonObject.getString("state");
+                            //String state = jsonObject.getString("state");
+                            Log.v("asd", "response.length()");
+                            //Toast.makeText(MainActivity.this,response.length(),Toast.LENGTH_LONG).show();
+                            /*for (int i = 0 ; i < response.length() ; i++ ){
+                                JSONObject jsonObject = response.getJSONObject(i);
+                                Issue issue = new Issue();
+                                issue.setCreatedAt(formatter.parseDateTime(jsonObject.getString("created_at")));
+                                IssueList.add(issue);
+
+                            }*/
 
                             //Toast.makeText(MainActivity.this, state, Toast.LENGTH_LONG).show();
                         }catch(Exception e){
-                            e.printStackTrace();
+                            Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
                         }
 
                     }
@@ -109,7 +127,7 @@ public class MainActivity extends ActionBarActivity {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        error.printStackTrace();
+                        Toast.makeText(MainActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
                 }
 
 
@@ -117,7 +135,7 @@ public class MainActivity extends ActionBarActivity {
         {
             @Override
             protected Response<JSONArray> parseNetworkResponse(NetworkResponse response) {
-
+                Log.v("asd","InParseNetworkResponse");
                 Map<String,String> responseHeader = response.headers;
                 String test = responseHeader.get("Link");
                 nextPage = nextPageUrlString(test);
@@ -127,21 +145,33 @@ public class MainActivity extends ActionBarActivity {
 
             @Override
             protected void deliverResponse(JSONArray response) {
-                int count = 0;
+
+                Log.v("asd","deliverResponse");
                 super.deliverResponse(response);
                 //Toast.makeText(MainActivity.this,nextPage,Toast.LENGTH_LONG).show();
-
+                Log.v("asd",nextPage);
                 if (!(API_URL.equals(nextPage)) && nextPage != null){
                     API_URL = nextPage;
                     getIssueData();
+                }else{
+                    displayList();
                 }
-                Log.v("asd",API_URL);
+
 
             }
         };
         helper.add(jsonArrayRequest);
     }
 
+
+    private void displayList(){
+
+        for (Issue i:IssueList){
+            Log.v("asd,",i.getCreatedAt().toString());
+
+        }
+
+    }
     private String nextPageUrlString(String test){
         //To get url string for next page
         String[] temp = test.split(",");
@@ -167,6 +197,7 @@ public class MainActivity extends ActionBarActivity {
             return false;
         }
     }
+
 
 
 }
